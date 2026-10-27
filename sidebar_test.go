@@ -31,7 +31,7 @@ func TestStatuslineTokensAreTheSessionsOwnData(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := s.paneTokens(sidebarNow)
-	want := map[string]string{"model": "opus 5.5", "ctx": "ctx 62%", "limits5h": "5h 51%", "limitsWeek": "sem 61%"}
+	want := map[string]string{"model": "opus 5.5", "ctx": "ctx 62%", "limits5h": "5h 51% →19:00", "limitsWeek": "sem 61% →sáb"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("tokens = %v, want %v", got, want)
 	}
@@ -59,7 +59,7 @@ func TestStatuslineRejectsGarbage(t *testing.T) {
 	}
 }
 
-func TestLimitsShowTheResetOnlyWhenAWindowIsNearlyUsed(t *testing.T) {
+func TestLimitsAlwaysShowWhenAWindowComesBack(t *testing.T) {
 	inTwoHours := sidebarNow.Add(2 * time.Hour).Unix()
 	inFourDays := sidebarNow.Add(4 * 24 * time.Hour).Unix()
 	cases := []struct {
@@ -67,11 +67,12 @@ func TestLimitsShowTheResetOnlyWhenAWindowIsNearlyUsed(t *testing.T) {
 		l    Limits
 		want string
 	}{
-		{"both low", Limits{FiveHour: Window{51, inTwoHours}, Week: Window{61, inFourDays}}, "5h 51% · sem 61%"},
-		{"5h at 75% shows when it comes back", Limits{FiveHour: Window{75, inTwoHours}, Week: Window{61, inFourDays}}, "5h 75% →19:30 · sem 61%"},
-		{"week high shows the day", Limits{FiveHour: Window{10, inTwoHours}, Week: Window{90, inFourDays}}, "5h 10% · sem 90% →vie"},
-		{"a window already reset is empty again", Limits{FiveHour: Window{98, sidebarNow.Add(-time.Minute).Unix()}, Week: Window{61, inFourDays}}, "5h 0% · sem 61%"},
-		{"percentages are whole", Limits{FiveHour: Window{33.6, inTwoHours}, Week: Window{0.4, inFourDays}}, "5h 33% · sem 0%"},
+		{"both low still show the hour and the day", Limits{FiveHour: Window{51, inTwoHours}, Week: Window{61, inFourDays}}, "5h 51% →19:30 · sem 61% →vie"},
+		{"5h at 75%", Limits{FiveHour: Window{75, inTwoHours}, Week: Window{61, inFourDays}}, "5h 75% →19:30 · sem 61% →vie"},
+		{"week high shows the day", Limits{FiveHour: Window{10, inTwoHours}, Week: Window{90, inFourDays}}, "5h 10% →19:30 · sem 90% →vie"},
+		{"a window already reset is empty again", Limits{FiveHour: Window{98, sidebarNow.Add(-time.Minute).Unix()}, Week: Window{61, inFourDays}}, "5h 0% · sem 61% →vie"},
+		{"no known reset time shows no arrow", Limits{FiveHour: Window{40, 0}, Week: Window{20, 0}}, "5h 40% · sem 20%"},
+		{"percentages are whole", Limits{FiveHour: Window{33.6, inTwoHours}, Week: Window{0.4, inFourDays}}, "5h 33% →19:30 · sem 0% →vie"},
 	}
 	for _, c := range cases {
 		if got := c.l.format(sidebarNow); got != c.want {

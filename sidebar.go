@@ -54,9 +54,6 @@ func commandOutput(limit time.Duration, dir, name string, args ...string) (strin
 	return strings.TrimSpace(string(out)), nil
 }
 
-// limitsAlertPercent is where a usage window starts showing when it comes back.
-const limitsAlertPercent = 75
-
 // stateLabels rename herdr's agent states in the agents rows.
 var stateLabels = []string{"working=trabajando", "blocked=te espera", "done=listo", "idle=libre"}
 
@@ -174,8 +171,8 @@ func (s Statusline) text(now time.Time) string {
 	return strings.Join(parts, " · ")
 }
 
-// window is "5h 51%"; a window at 75% or more adds when it comes back (the hour, or the weekday for the week), and a
-// window whose reset time has passed is empty again.
+// window is "5h 51% →19:30": the usage and when it comes back (the hour, or the weekday for the week). A window whose
+// reset time has passed is empty again and, like one with no known reset time, shows no arrow.
 func (w Window) text(name string, now time.Time, when func(time.Time) string) string {
 	percent := int(math.Floor(w.Percent))
 	reset := time.Unix(w.ResetsAt, 0).In(now.Location())
@@ -183,7 +180,7 @@ func (w Window) text(name string, now time.Time, when func(time.Time) string) st
 		percent = 0
 	}
 	text := fmt.Sprintf("%s %d%%", name, percent)
-	if percent >= limitsAlertPercent {
+	if w.ResetsAt > 0 && reset.After(now) {
 		text += " →" + when(reset)
 	}
 	return text
