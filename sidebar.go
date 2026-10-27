@@ -391,8 +391,8 @@ func (g GitState) summary() string {
 }
 
 // maxSpaceRepos is how many repositories a space shows in config.toml: each has a name row ($repoN) and a branch row
-// ($repoNb with its state $repoNs).
-const maxSpaceRepos = 3
+// ($repoNb with its state $repoNs). herdr takes 16 tokens per report and each repository uses 3, so 5 is the ceiling.
+const maxSpaceRepos = 5
 
 // RepoState is one repository of a space, as its rows show it.
 type RepoState struct {

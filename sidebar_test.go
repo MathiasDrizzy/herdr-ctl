@@ -225,14 +225,29 @@ func TestSpaceTokensDrawEveryRepositoryAsATree(t *testing.T) {
 	if !reflect.DeepEqual(two, want) {
 		t.Fatalf("two repositories = %v, want %v", two, want)
 	}
-	if got := len(spaceTokens(make([]RepoState, 5))); got > 3*maxSpaceRepos {
-		t.Fatalf("five repositories gave %d tokens, past the %d rows the config has", got, 2*maxSpaceRepos)
+}
+
+func TestSpaceTokensShowFiveRepositoriesAndNeverPastHerdrsTokenLimit(t *testing.T) {
+	if maxSpaceRepos != 5 {
+		t.Fatalf("maxSpaceRepos = %d, want 5 (3 tokens each is 15 of herdr's 16 per report)", maxSpaceRepos)
+	}
+	full := RepoState{Name: "r", Branch: "main", Git: GitState{Changed: 1}}
+	repos := make([]RepoState, 7)
+	for i := range repos {
+		repos[i] = full
+	}
+	tokens := spaceTokens(repos)
+	if len(tokens) != 15 || tokens["repo5"] != "└ r" || tokens["repo6"] != "" {
+		t.Fatalf("seven repositories gave %d tokens %v, want the first five (15 tokens)", len(tokens), tokens)
+	}
+	if n := len(tokens) + len(spaceTokensToClear(tokens)); n > 16 {
+		t.Fatalf("a report carries %d tokens, herdr allows 16", n)
 	}
 }
 
 func TestSpaceTokensClearEveryRowTheyDoNotFill(t *testing.T) {
 	got := spaceTokensToClear(map[string]string{"repo1b": "main", "repo1s": "CI ✓"})
-	want := []string{"repo1", "repo2", "repo2b", "repo2s", "repo3", "repo3b", "repo3s", "sync"}
+	want := []string{"repo1", "repo2", "repo2b", "repo2s", "repo3", "repo3b", "repo3s", "repo4", "repo4b", "repo4s", "repo5", "repo5b", "repo5s", "sync"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("cleared = %v, want %v", got, want)
 	}
