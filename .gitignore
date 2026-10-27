@@ -1,2 +1,4 @@
 herdr-ctl
 *.test
+.atl/
+.codegraph/
